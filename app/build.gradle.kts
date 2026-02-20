@@ -16,6 +16,10 @@ android {
         version = release(36)
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         buildConfigField("String", "OPENWEATHER_API_KEY", "\"$openWeatherApiKey\"")
         applicationId = "com.joaopedro.weatherhubandroid"
