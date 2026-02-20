@@ -1,6 +1,14 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 }
+
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+val openWeatherApiKey = localProps.getProperty("OPENWEATHER_API_KEY") ?: ""
 
 android {
     namespace = "com.joaopedro.weatherhubandroid"
@@ -9,6 +17,7 @@ android {
     }
 
     defaultConfig {
+        buildConfigField("String", "OPENWEATHER_API_KEY", "\"$openWeatherApiKey\"")
         applicationId = "com.joaopedro.weatherhubandroid"
         minSdk = 24
         targetSdk = 36
@@ -42,4 +51,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("io.coil-kt:coil:2.6.0") // carregar imagem do ícone do clima
+
 }
