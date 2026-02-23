@@ -12,12 +12,13 @@ import com.joaopedro.weatherhubandroid.rede.FabricaRetrofit
 import com.joaopedro.weatherhubandroid.rede.FavoritoCriarRequest
 import com.joaopedro.weatherhubandroid.rede.ModelFavorito
 import kotlinx.coroutines.launch
+import android.content.Intent
 
 class Favoritos : AppCompatActivity() {
 
     private val USER_ID_PADRAO = 1L
-
     private val favoritos = mutableListOf<ModelFavorito>()
+    private val tempPorFavoritoId = mutableMapOf<Long, String>()
     private lateinit var adapter: FavoritosAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,7 +35,15 @@ class Favoritos : AppCompatActivity() {
 
         adapter = FavoritosAdapter(
             favoritos = favoritos,
-            aoClicarRemover = { favorito -> removerFavorito(favorito, txtStatus) }
+            tempPorId = tempPorFavoritoId,
+            aoClicarDetalhes = { favorito ->
+                val it = Intent(this, Detalhes::class.java)
+                it.putExtra("cidade", favorito.cityName)
+                startActivity(it)
+            },
+            aoClicarRemover = { favorito ->
+                removerFavorito(favorito, txtStatus)
+            }
         )
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = adapter
@@ -61,6 +70,8 @@ class Favoritos : AppCompatActivity() {
                 favoritos.clear()
                 favoritos.addAll(lista)
                 adapter.notifyDataSetChanged()
+                tempPorFavoritoId.clear()
+                buscarTemperaturasDosFavoritos()
 
                 txtStatus.text = "Favoritos carregados: ${favoritos.size}"
             } catch (e: Exception) {
@@ -109,8 +120,28 @@ class Favoritos : AppCompatActivity() {
         }
     }
 
+    private fun buscarTemperaturasDosFavoritos() {
+        lifecycleScope.launch {
+            val openWeather = FabricaRetrofit.openWeatherApi()
+
+            for (fav in favoritos) {
+                try {
+                    val clima = openWeather.buscarClimaAtual(
+                        cidade = fav.cityName,
+                        chaveApi = BuildConfig.OPENWEATHER_API_KEY
+                    )
+                    tempPorFavoritoId[fav.id] = "${clima.main.temp} °C"
+                } catch (e: Exception) {
+                    tempPorFavoritoId[fav.id] = "?"
+                }
+                adapter.notifyDataSetChanged()
+            }
+        }
+    }
     private class FavoritosAdapter(
         private val favoritos: List<ModelFavorito>,
+        private val tempPorId: Map<Long, String>,
+        private val aoClicarDetalhes: (ModelFavorito) -> Unit,
         private val aoClicarRemover: (ModelFavorito) -> Unit
     ) : RecyclerView.Adapter<FavoritosViewHolder>() {
 
@@ -122,8 +153,15 @@ class Favoritos : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: FavoritosViewHolder, position: Int) {
             val fav = favoritos[position]
+
+            val temp = tempPorId[fav.id] ?: "Carregando..."
+
             holder.titulo.text = "${fav.cityName} - ${fav.country}"
-            holder.subtitulo.text = "id=${fav.id} | lat=${fav.latitude} lon=${fav.longitude}"
+            holder.subtitulo.text = "Temp: $temp"
+
+            holder.itemView.setOnClickListener {
+                aoClicarDetalhes(fav)
+            }
 
             holder.itemView.setOnLongClickListener {
                 aoClicarRemover(fav)

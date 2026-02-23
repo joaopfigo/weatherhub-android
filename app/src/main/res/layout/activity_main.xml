@@ -52,4 +52,10 @@
         android:text="Ir para Detalhes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
+
+    <Button
+        android:id="@+id/btnAdicionarFavoritoHome"
+        android:text="Adicionar aos favoritos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 </LinearLayout>

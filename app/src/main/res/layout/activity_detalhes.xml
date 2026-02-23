@@ -26,6 +26,20 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"/>
 
+    <TextView
+        android:id="@+id/txtClimaAtual"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Clima atual: -"
+        android:layout_marginTop="12dp"/>
+
+    <ImageView
+        android:id="@+id/imgIconeDetalhes"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:contentDescription="Ícone do clima"
+        android:layout_marginTop="8dp"/>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvPrevisao"
         android:layout_width="match_parent"
