@@ -10,9 +10,13 @@ import android.widget.*
 import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.joaopedro.weatherhubandroid.rede.FabricaRetrofit
+import com.joaopedro.weatherhubandroid.rede.HistoricoCriarRequest
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        private const val USER_ID_PADRAO = 1L
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -46,11 +50,23 @@ class MainActivity : AppCompatActivity() {
                 try {
                     // Cria uma instância do Retrofit e chama HTTP/função de busca da cidade informada
                     val api = FabricaRetrofit.openWeatherApi()
-                    val resposta = api.buscarClimaAtual(cidade = cidade, chaveApi = "2c0063679431742b53dcf5d066e56a67")
+                    val resposta = api.buscarClimaAtual(cidade = cidade, chaveApi = BuildConfig.OPENWEATHER_API_KEY)
 
                     // Atualiza a interface do usuário com os dados recebidos da API
                     txtTemperatura.text = "Temperatura: ${resposta.main.temp} °C"
                     txtCondicao.text = "Condição: ${resposta.weather.firstOrNull()?.description ?: "-"}"
+                    val historicoRequest = HistoricoCriarRequest(
+                        cityName = resposta.name,
+                        temperature = resposta.main.temp,
+                        condition = resposta.weather.firstOrNull()?.description ?: "-"
+                    )
+                    try {
+                        val apiHub = FabricaRetrofit.weatherHubApi()
+                        apiHub.adicionarHistorico(USER_ID_PADRAO, historicoRequest)
+                    } catch (e: Exception) {
+                        // Ignora ou mostra erro simples
+                    }
+
                     txtExtras.text = "Umidade: ${resposta.main.humidity}% | Vento: ${resposta.wind.speed} m/s"
 
                     val icone = resposta.weather.firstOrNull()?.icon
@@ -59,6 +75,7 @@ class MainActivity : AppCompatActivity() {
                         imgIconeClima.load(urlIcone) // load carrega a imagem do ícone usando a biblioteca Coil. Se usa Coil atravez do .load?
                     }
                     ultimaCidadeBuscada = cidade
+
                 } catch (e: Exception) {
                     txtCondicao.text = "Erro ao buscar clima."
                 }

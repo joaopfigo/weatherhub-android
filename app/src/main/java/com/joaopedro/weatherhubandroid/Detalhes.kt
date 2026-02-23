@@ -16,6 +16,10 @@ class Detalhes : AppCompatActivity() {
     private val itens = mutableListOf<ItemPrevisao>()
     private lateinit var adapter: PrevisaoAdapter
 
+    companion object {
+        private const val USER_ID_PADRAO = 1L // ID fixo para simular um usuário único
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detalhes)
@@ -40,6 +44,9 @@ class Detalhes : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
+                val apiHub = FabricaRetrofit.weatherHubApi()
+                val listaHist = apiHub.listarHistorico(USER_ID_PADRAO)
+
                 val api = FabricaRetrofit.openWeatherApi()
                 val resp = api.buscarPrevisao5Dias(
                     cidade = cidade,
@@ -52,7 +59,7 @@ class Detalhes : AppCompatActivity() {
 
                 txtStatus.text = "Previsão (5 dias) - $cidade"
             } catch (e: Exception) {
-                txtStatus.text = "Erro ao buscar previsão."
+                txtStatus.text = "Erro ao buscar dados."
             }
         }
     }

@@ -24,4 +24,15 @@ interface WeatherHubApi {
         @Path("userId") userId: Long,
         @Path("cityId") cityId: Long
     )
+    @GET("api/users/{userId}/history")
+    suspend fun listarHistorico(@Path("userId") userId: Long): List<ModelHistorico>
+
+    @POST("api/users/{userId}/history")
+    suspend fun adicionarHistorico(
+        @Path("userId") userId: Long,
+        @Body historico: HistoricoCriarRequest
+    ): ModelHistorico
+
+    @DELETE("api/users/{userId}/history")
+    suspend fun limparHistorico(@Path("userId") userId: Long)
 }
