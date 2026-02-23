@@ -16,7 +16,7 @@ object FabricaRetrofit {
             .create(OpenWeatherApi::class.java) //cria uma implementação da interface.
     }
 
-    private const val URL_BASE_WEATHERHUB = "http://10.0.2.2:8080/"
+    private const val URL_BASE_WEATHERHUB = "http://172.20.0.1:8080/"
 
     fun weatherHubApi(): WeatherHubApi {
         return Retrofit.Builder()

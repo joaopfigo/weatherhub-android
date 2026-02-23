@@ -73,7 +73,7 @@ class Favoritos : AppCompatActivity() {
                 tempPorFavoritoId.clear()
                 buscarTemperaturasDosFavoritos()
 
-                txtStatus.text = "Favoritos carregados: ${favoritos.size}"
+                txtStatus.text = "Favoritos: ${favoritos.size} | Toque para detalhes | Segure para remover"
             } catch (e: Exception) {
                 txtStatus.text = "Erro ao listar favoritos."
             }
@@ -92,14 +92,21 @@ class Favoritos : AppCompatActivity() {
 
                 val request = FavoritoCriarRequest(
                     cityName = clima.name,
-                    country = "BR",
-                    latitude = 0.0,
-                    longitude = 0.0
+                    country = clima.sys.country,
+                    latitude = clima.coord.lat,
+                    longitude = clima.coord.lon
                 )
 
                 val api = FabricaRetrofit.weatherHubApi()
-                api.adicionarFavorito(USER_ID_PADRAO, request)
 
+                val existentes = api.listarFavoritos(USER_ID_PADRAO)
+                val jaExiste = existentes.any { it.cityName.equals(request.cityName, ignoreCase = true) }
+                if (jaExiste) {
+                    txtStatus.text = "Essa cidade já está nos favoritos."
+                    return@launch
+                }
+
+                api.adicionarFavorito(USER_ID_PADRAO, request)
                 listarFavoritos(txtStatus)
             } catch (e: Exception) {
                 txtStatus.text = "Erro ao adicionar favorito."

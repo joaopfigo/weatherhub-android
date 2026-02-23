@@ -18,6 +18,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val USER_ID_PADRAO = 1L
     }
+    private var ultimaCidadeBuscada: String? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -28,6 +29,12 @@ class MainActivity : AppCompatActivity() {
             insets
         }
         val etCidade = findViewById<EditText>(R.id.etCidade)
+        val prefs = getSharedPreferences("weatherhub", MODE_PRIVATE)
+        val ultima = prefs.getString("ultima_cidade", null)
+        if (!ultima.isNullOrBlank()) {
+            etCidade.setText(ultima)
+            ultimaCidadeBuscada = ultima
+        }
         val btnBuscarClima = findViewById<Button>(R.id.btnBuscarClima)
 
         val txtTemperatura = findViewById<TextView>(R.id.txtTemperatura)
@@ -38,7 +45,6 @@ class MainActivity : AppCompatActivity() {
         val btnAbrirFavoritos = findViewById<Button>(R.id.btnAbrirFavoritos)
         val btnAbrirDetalhes = findViewById<Button>(R.id.btnAbrirDetalhes)
         var btnAdicionarFavoritoHome = findViewById<Button>(R.id.btnAdicionarFavoritoHome)
-        var ultimaCidadeBuscada: String? = null
         var ultimoFavoritoRequest: FavoritoCriarRequest? = null
 
         btnBuscarClima.setOnClickListener {
@@ -55,9 +61,6 @@ class MainActivity : AppCompatActivity() {
                     val api = FabricaRetrofit.openWeatherApi()
                     val resposta = api.buscarClimaAtual(cidade = cidade, chaveApi = BuildConfig.OPENWEATHER_API_KEY)
 
-                    // mostra cidade e país (já aproveita o sys.country)
-                    txtCondicao.text = "Cidade: ${resposta.name} (${resposta.sys.country})"
-
                     // deixa pronto para o botão "Adicionar aos favoritos"
                     ultimoFavoritoRequest = FavoritoCriarRequest(
                         cityName = resposta.name,
@@ -65,12 +68,13 @@ class MainActivity : AppCompatActivity() {
                         latitude = resposta.coord.lat,
                         longitude = resposta.coord.lon
                     )
-
                     ultimaCidadeBuscada = resposta.name
+                    prefs.edit().putString("ultima_cidade", resposta.name).apply()
 
                     // Atualiza a interface do usuário com os dados recebidos da API
                     txtTemperatura.text = "Temperatura: ${resposta.main.temp} °C"
-                    txtCondicao.text = "Cidade: ${resposta.name} - País: ${resposta.sys.country}\n" + "Condição: ${resposta.weather.firstOrNull()?.description ?: "-"}"
+                    val condicao = resposta.weather.firstOrNull()?.description ?: "-"
+                    txtCondicao.text = "Cidade: ${resposta.name} - País: ${resposta.sys.country}\nCondição: $condicao"
                     val historicoRequest = HistoricoCriarRequest(
                         cityName = resposta.name,
                         temperature = resposta.main.temp,
@@ -86,28 +90,14 @@ class MainActivity : AppCompatActivity() {
                     txtExtras.text = "Umidade: ${resposta.main.humidity}% | Vento: ${resposta.wind.speed} m/s"
 
                     val icone = resposta.weather.firstOrNull()?.icon
+                    imgIconeClima.setImageDrawable(null)
                     if (!icone.isNullOrBlank()) { //se nao for vazio
                         val urlIcone = "https://openweathermap.org/img/wn/${icone}@2x.png" // URL para obter o ícone do clima
                         imgIconeClima.load(urlIcone) // load carrega a imagem do ícone usando a biblioteca Coil. Se usa Coil atravez do .load?
                     }
-                    ultimaCidadeBuscada = cidade
-
-                    val txtHistorico = findViewById<TextView>(R.id.txtHistorico)
-
-                    val apiHub = FabricaRetrofit.weatherHubApi()
-                    val listaHist: List<com.joaopedro.weatherhubandroid.rede.ModelHistorico> =
-                        apiHub.listarHistorico(USER_ID_PADRAO)
-
-                    val filtrado = listaHist.filter { it.cityName.equals(cidade, ignoreCase = true) }
-
-                    txtHistorico.text =
-                        if (filtrado.isEmpty()) "Histórico: sem registros"
-                        else filtrado.joinToString("\n") { h: com.joaopedro.weatherhubandroid.rede.ModelHistorico ->
-                            "${h.searchedAt} | ${h.temperature}°C | ${h.condition}"
-                        }
-
                 } catch (e: Exception) {
                     txtCondicao.text = "Erro ao buscar clima."
+                    imgIconeClima.setImageDrawable(null)
                 }
             }
         }
@@ -139,6 +129,12 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     val apiHub = FabricaRetrofit.weatherHubApi()
+                    val existentes = apiHub.listarFavoritos(USER_ID_PADRAO)
+                    val jaExiste = existentes.any { it.cityName.equals(req.cityName, ignoreCase = true) }
+                    if (jaExiste) {
+                        txtCondicao.text = "Essa cidade já está nos favoritos."
+                        return@launch
+                    }
                     apiHub.adicionarFavorito(USER_ID_PADRAO, req)
                     txtCondicao.text = "Adicionado aos favoritos: ${req.cityName}"
                 } catch (e: Exception) {
