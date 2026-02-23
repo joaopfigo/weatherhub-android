@@ -32,32 +32,33 @@ class MainActivity : AppCompatActivity() {
 
         val btnAbrirFavoritos = findViewById<Button>(R.id.btnAbrirFavoritos)
         val btnAbrirDetalhes = findViewById<Button>(R.id.btnAbrirDetalhes)
+        var ultimaCidadeBuscada: String? = null
 
         btnBuscarClima.setOnClickListener {
-            val cidade = etCidade.text.toString().trim()
+            val cidade = etCidade.text.toString().trim() //pega o texto do EditText e remove espaços extras
 
             if (cidade.isEmpty()) {
                 txtCondicao.text = "Digite uma cidade."
                 return@setOnClickListener
             }
 
-            lifecycleScope.launch {
+            lifecycleScope.launch { // Inicia uma coroutine (rotina em paralelo) para fazer a chamada de rede sem bloquear a UI
                 try {
+                    // Cria uma instância do Retrofit e chama HTTP/função de busca da cidade informada
                     val api = FabricaRetrofit.openWeatherApi()
-                    val resposta = api.buscarClimaAtual(
-                        cidade = cidade,
-                        chaveApi = "2c0063679431742b53dcf5d066e56a67"
-                    )
+                    val resposta = api.buscarClimaAtual(cidade = cidade, chaveApi = "2c0063679431742b53dcf5d066e56a67")
 
+                    // Atualiza a interface do usuário com os dados recebidos da API
                     txtTemperatura.text = "Temperatura: ${resposta.main.temp} °C"
                     txtCondicao.text = "Condição: ${resposta.weather.firstOrNull()?.description ?: "-"}"
                     txtExtras.text = "Umidade: ${resposta.main.humidity}% | Vento: ${resposta.wind.speed} m/s"
 
                     val icone = resposta.weather.firstOrNull()?.icon
-                    if (!icone.isNullOrBlank()) {
-                        val urlIcone = "https://openweathermap.org/img/wn/${icone}@2x.png"
-                        imgIconeClima.load(urlIcone)
+                    if (!icone.isNullOrBlank()) { //se nao for vazio
+                        val urlIcone = "https://openweathermap.org/img/wn/${icone}@2x.png" // URL para obter o ícone do clima
+                        imgIconeClima.load(urlIcone) // load carrega a imagem do ícone usando a biblioteca Coil. Se usa Coil atravez do .load?
                     }
+                    ultimaCidadeBuscada = cidade
                 } catch (e: Exception) {
                     txtCondicao.text = "Erro ao buscar clima."
                 }
@@ -69,7 +70,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnAbrirDetalhes.setOnClickListener {
-            startActivity(Intent(this, Detalhes::class.java))
+            val cidade = ultimaCidadeBuscada?.trim()
+
+            if (cidade.isNullOrEmpty()) {
+                txtCondicao.text = "Faça uma busca primeiro, aí abre os detalhes."
+                return@setOnClickListener
+            }
+
+            val it = Intent(this, Detalhes::class.java)
+            it.putExtra("cidade", cidade)
+            startActivity(it)
         }
     }
 }
