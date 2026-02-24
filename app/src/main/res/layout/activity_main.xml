@@ -23,7 +23,8 @@
         android:layout_height="80dp"
         android:layout_marginTop="8dp"
         android:contentDescription="Ícone do clima"
-        android:adjustViewBounds="true"/>
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter" />
 
     <TextView
         android:id="@+id/txtTemperatura"

@@ -90,9 +90,10 @@ class MainActivity : AppCompatActivity() {
                     txtExtras.text = "Umidade: ${resposta.main.humidity}% | Vento: ${resposta.wind.speed} m/s"
 
                     val icone = resposta.weather.firstOrNull()?.icon
-                    imgIconeClima.setImageDrawable(null)
                     if (!icone.isNullOrBlank()) { //se nao for vazio
                         val urlIcone = "https://openweathermap.org/img/wn/${icone}@2x.png" // URL para obter o ícone do clima
+                        imgIconeClima.visibility = android.view.View.VISIBLE
+                        imgIconeClima.setImageDrawable(null)
                         imgIconeClima.load(urlIcone) // load carrega a imagem do ícone usando a biblioteca Coil. Se usa Coil atravez do .load?
                     }
                 } catch (e: Exception) {

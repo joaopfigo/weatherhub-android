@@ -99,8 +99,13 @@ class Favoritos : AppCompatActivity() {
 
                 val api = FabricaRetrofit.weatherHubApi()
 
+                // checa antes de adicionar
                 val existentes = api.listarFavoritos(USER_ID_PADRAO)
-                val jaExiste = existentes.any { it.cityName.equals(request.cityName, ignoreCase = true) }
+                val jaExiste = existentes.any {
+                    it.cityName.equals(request.cityName, ignoreCase = true) &&
+                            it.country.equals(request.country, ignoreCase = true)
+                }
+
                 if (jaExiste) {
                     txtStatus.text = "Essa cidade já está nos favoritos."
                     return@launch
@@ -154,33 +159,27 @@ class Favoritos : AppCompatActivity() {
 
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): FavoritosViewHolder {
             val view = android.view.LayoutInflater.from(parent.context)
-                .inflate(android.R.layout.simple_list_item_2, parent, false)
+                .inflate(R.layout.item_favorito, parent, false)
             return FavoritosViewHolder(view)
         }
 
         override fun onBindViewHolder(holder: FavoritosViewHolder, position: Int) {
             val fav = favoritos[position]
-
             val temp = tempPorId[fav.id] ?: "Carregando..."
 
             holder.titulo.text = "${fav.cityName} - ${fav.country}"
             holder.subtitulo.text = "Temp: $temp"
 
-            holder.itemView.setOnClickListener {
-                aoClicarDetalhes(fav)
-            }
-
-            holder.itemView.setOnLongClickListener {
-                aoClicarRemover(fav)
-                true
-            }
+            holder.itemView.setOnClickListener { aoClicarDetalhes(fav) }
+            holder.btnRemover.setOnClickListener { aoClicarRemover(fav) }
         }
 
         override fun getItemCount() = favoritos.size
     }
 
     private class FavoritosViewHolder(view: android.view.View) : RecyclerView.ViewHolder(view) {
-        val titulo: TextView = view.findViewById(android.R.id.text1)
-        val subtitulo: TextView = view.findViewById(android.R.id.text2)
+        val titulo: TextView = view.findViewById(R.id.txtTituloFav)
+        val subtitulo: TextView = view.findViewById(R.id.txtSubFav)
+        val btnRemover: Button = view.findViewById(R.id.btnRemoverFav)
     }
 }
