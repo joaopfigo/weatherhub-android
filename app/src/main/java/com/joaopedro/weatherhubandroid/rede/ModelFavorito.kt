@@ -9,8 +9,6 @@ data class ModelFavorito(
     val longitude: Double,
     val addedAt: String? = null
 )
-
-// corpo do POST (o backend pega o userId pela URL)
 data class FavoritoCriarRequest(
     val cityName: String,
     val country: String,

@@ -7,16 +7,15 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object FabricaRetrofit {
     private const val URL_BASE_OPENWEATHER = "https://api.openweathermap.org/"
-    //essa URL vai ser completada com a interface do OpenWeatherApi que esta sendo chamada no coroutine do Main.
-    fun openWeatherApi(): OpenWeatherApi { //herda a interface para ter acesso a buscarClimaAtual.
+    fun openWeatherApi(): OpenWeatherApi {
         return Retrofit.Builder()
             .baseUrl(URL_BASE_OPENWEATHER)
-            .addConverterFactory(GsonConverterFactory.create()) //conversor de JSON para objetos Kotlin.
-            .build()//constrói a instância do Retrofit com a URL base e o conversor.
-            .create(OpenWeatherApi::class.java) //cria uma implementação da interface.
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(OpenWeatherApi::class.java)
     }
 
-    private const val URL_BASE_WEATHERHUB = "http://172.20.0.1:8080/"
+    private const val URL_BASE_WEATHERHUB = "http://10.60.94.5:8080/"
 
     fun weatherHubApi(): WeatherHubApi {
         return Retrofit.Builder()

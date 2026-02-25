@@ -9,7 +9,6 @@ data class ModelHistorico(
     val searchedAt: String
 )
 
-// corpo do POST (temperatura e condição vêm da resposta da OpenWeather)
 data class HistoricoCriarRequest(
     val cityName: String,
     val temperature: Double,

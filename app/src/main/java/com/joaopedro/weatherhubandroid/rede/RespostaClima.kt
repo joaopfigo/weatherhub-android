@@ -1,11 +1,11 @@
 package com.joaopedro.weatherhubandroid.rede
 
 data class RespostaClima(
-    val name: String,// nome da cidade que a API devolve
+    val name: String,
     val sys: Sys,
-    val main: ClimaMain, // temp e umidade
-    val weather: List<ClimaInfo>,// descrição e ícone
-    val wind: ClimaVento, // velocidade do vento
+    val main: ClimaMain,
+    val weather: List<ClimaInfo>,
+    val wind: ClimaVento,
     val coord: Coord
 )
 

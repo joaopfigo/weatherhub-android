@@ -19,7 +19,7 @@ class Detalhes : AppCompatActivity() {
     private lateinit var adapter: PrevisaoAdapter
 
     companion object {
-        private const val USER_ID_PADRAO = 1L // ID fixo para simular um usuário único
+        private const val USER_ID_PADRAO = 1L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,6 +31,8 @@ class Detalhes : AppCompatActivity() {
         val btnVoltar = findViewById<Button>(R.id.btnVoltarDetalhes)
         val txtClimaAtual = findViewById<TextView>(R.id.txtClimaAtual)
         val imgIconeDetalhes = findViewById<ImageView>(R.id.imgIconeDetalhes)
+        val txtHistorico = findViewById<TextView>(R.id.txtHistorico)
+        val btnLimparHistorico = findViewById<Button>(R.id.btnLimparHistorico)
 
         btnVoltar.setOnClickListener { finish() }
 
@@ -53,12 +55,17 @@ class Detalhes : AppCompatActivity() {
                 val apiHub = FabricaRetrofit.weatherHubApi()
                 val listaHist = apiHub.listarHistorico(USER_ID_PADRAO)
 
-                val filtrado = listaHist.filter { it.cityName.equals(cidade, ignoreCase = true) }
-                txtHistorico.text =
-                    if (filtrado.isEmpty()) "Histórico: sem registros"
-                    else filtrado.joinToString("\n") { h ->
-                        "${h.searchedAt} | ${h.temperature}°C | ${h.condition}"
-                    }
+                val filtrado = listaHist.filter { h ->
+                    h.cityName.equals(cidade, ignoreCase = true)
+                }
+
+                val linhas = if (filtrado.isEmpty()) {
+                    listOf("sem registros para essa cidade")
+                } else {
+                    filtrado.map { h -> "${h.searchedAt} | ${h.temperature}°C | ${h.condition}" }
+                }
+
+                txtHistorico.text = "Histórico:\n" + linhas.joinToString("\n")
 
                 val api = FabricaRetrofit.openWeatherApi()
 
@@ -75,9 +82,21 @@ class Detalhes : AppCompatActivity() {
                             "Vento: ${climaAtual.wind.speed} m/s"
 
                 val icone = climaAtual.weather.firstOrNull()?.icon
+                imgIconeDetalhes.setImageResource(R.drawable.ic_weather_placeholder)
+
                 if (!icone.isNullOrBlank()) {
-                    val url = "https://openweathermap.org/img/wn/${icone}@2x.png"
-                    imgIconeDetalhes.load(url)
+                    val urlIcone = "https://openweathermap.org/img/wn/${icone}@2x.png"
+                    val respIcone = api.baixarIcone(urlIcone)
+
+                    if (respIcone.isSuccessful) {
+                        val bytes = respIcone.body()?.bytes()
+                        if (bytes != null && bytes.isNotEmpty()) {
+                            imgIconeDetalhes.load(bytes) {
+                                error(R.drawable.ic_weather_placeholder)
+                                fallback(R.drawable.ic_weather_placeholder)
+                            }
+                        }
+                    }
                 }
 
                 val resp = api.buscarPrevisao5Dias(
@@ -92,6 +111,18 @@ class Detalhes : AppCompatActivity() {
                 txtStatus.text = "Previsão (5 dias) - $cidade"
             } catch (e: Exception) {
                 txtStatus.text = "Erro ao buscar dados."
+            }
+        }
+        btnLimparHistorico.setOnClickListener {
+            lifecycleScope.launch {
+                try {
+                    val apiHub = FabricaRetrofit.weatherHubApi()
+                    apiHub.limparHistorico(USER_ID_PADRAO)
+
+                    txtHistorico.text = "Histórico: limpo"
+                } catch (e: Exception) {
+                    txtHistorico.text = "Erro ao limpar histórico."
+                }
             }
         }
     }
@@ -114,7 +145,6 @@ class Detalhes : AppCompatActivity() {
 
         override fun getItemCount() = dados.size
     }
-
     private class PrevisaoViewHolder(view: android.view.View) : RecyclerView.ViewHolder(view) {
         val titulo: TextView = view.findViewById(android.R.id.text1)
         val subtitulo: TextView = view.findViewById(android.R.id.text2)

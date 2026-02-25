@@ -99,7 +99,6 @@ class Favoritos : AppCompatActivity() {
 
                 val api = FabricaRetrofit.weatherHubApi()
 
-                // checa antes de adicionar
                 val existentes = api.listarFavoritos(USER_ID_PADRAO)
                 val jaExiste = existentes.any {
                     it.cityName.equals(request.cityName, ignoreCase = true) &&

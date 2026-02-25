@@ -13,6 +13,7 @@ import com.joaopedro.weatherhubandroid.rede.FabricaRetrofit
 import com.joaopedro.weatherhubandroid.rede.HistoricoCriarRequest
 import com.joaopedro.weatherhubandroid.rede.FavoritoCriarRequest
 import kotlinx.coroutines.launch
+import android.graphics.BitmapFactory
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -48,20 +49,18 @@ class MainActivity : AppCompatActivity() {
         var ultimoFavoritoRequest: FavoritoCriarRequest? = null
 
         btnBuscarClima.setOnClickListener {
-            val cidade = etCidade.text.toString().trim() //pega o texto do EditText e remove espaços extras
+            val cidade = etCidade.text.toString().trim()
 
             if (cidade.isEmpty()) {
                 txtCondicao.text = "Digite uma cidade."
                 return@setOnClickListener
             }
 
-            lifecycleScope.launch { // Inicia uma coroutine (rotina em paralelo) para fazer a chamada de rede sem bloquear a UI
+            lifecycleScope.launch {
                 try {
-                    // Cria uma instância do Retrofit e chama HTTP/função de busca da cidade informada
                     val api = FabricaRetrofit.openWeatherApi()
                     val resposta = api.buscarClimaAtual(cidade = cidade, chaveApi = BuildConfig.OPENWEATHER_API_KEY)
 
-                    // deixa pronto para o botão "Adicionar aos favoritos"
                     ultimoFavoritoRequest = FavoritoCriarRequest(
                         cityName = resposta.name,
                         country = resposta.sys.country,
@@ -71,7 +70,6 @@ class MainActivity : AppCompatActivity() {
                     ultimaCidadeBuscada = resposta.name
                     prefs.edit().putString("ultima_cidade", resposta.name).apply()
 
-                    // Atualiza a interface do usuário com os dados recebidos da API
                     txtTemperatura.text = "Temperatura: ${resposta.main.temp} °C"
                     val condicao = resposta.weather.firstOrNull()?.description ?: "-"
                     txtCondicao.text = "Cidade: ${resposta.name} - País: ${resposta.sys.country}\nCondição: $condicao"
@@ -84,17 +82,33 @@ class MainActivity : AppCompatActivity() {
                         val apiHub = FabricaRetrofit.weatherHubApi()
                         apiHub.adicionarHistorico(USER_ID_PADRAO, historicoRequest)
                     } catch (e: Exception) {
-                        // Ignora ou mostra erro simples
                     }
 
                     txtExtras.text = "Umidade: ${resposta.main.humidity}% | Vento: ${resposta.wind.speed} m/s"
 
                     val icone = resposta.weather.firstOrNull()?.icon
-                    if (!icone.isNullOrBlank()) { //se nao for vazio
-                        val urlIcone = "https://openweathermap.org/img/wn/${icone}@2x.png" // URL para obter o ícone do clima
-                        imgIconeClima.visibility = android.view.View.VISIBLE
-                        imgIconeClima.setImageDrawable(null)
-                        imgIconeClima.load(urlIcone) // load carrega a imagem do ícone usando a biblioteca Coil. Se usa Coil atravez do .load?
+
+                    imgIconeClima.setImageResource(R.drawable.ic_weather_placeholder)
+
+                    if (!icone.isNullOrBlank()) {
+                        val urlIcone = "https://openweathermap.org/img/wn/${icone}@2x.png"
+
+                        val respIcone = api.baixarIcone(urlIcone)
+
+                        if (respIcone.isSuccessful) {
+                            val bytes = respIcone.body()?.bytes()
+
+                            if (bytes != null && bytes.isNotEmpty()) {
+                                imgIconeClima.load(bytes) {
+                                    error(R.drawable.ic_weather_placeholder)
+                                    fallback(R.drawable.ic_weather_placeholder)
+                                }
+                            } else {
+                                imgIconeClima.setImageResource(R.drawable.ic_weather_placeholder)
+                            }
+                        } else {
+                            imgIconeClima.setImageResource(R.drawable.ic_weather_placeholder)
+                        }
                     }
                 } catch (e: Exception) {
                     txtCondicao.text = "Erro ao buscar clima."
