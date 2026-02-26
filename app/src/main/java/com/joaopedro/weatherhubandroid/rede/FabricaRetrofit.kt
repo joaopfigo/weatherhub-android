@@ -15,7 +15,7 @@ object FabricaRetrofit {
             .create(OpenWeatherApi::class.java)
     }
 
-    private const val URL_BASE_WEATHERHUB = "http://10.60.94.5:8080/"
+    private const val URL_BASE_WEATHERHUB = "http://192.168.0.197:8080/"
 
     fun weatherHubApi(): WeatherHubApi {
         return Retrofit.Builder()

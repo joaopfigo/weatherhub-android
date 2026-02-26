@@ -8,125 +8,145 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import com.google.android.gms.security.ProviderInstaller
 import com.joaopedro.weatherhubandroid.rede.FabricaRetrofit
 import com.joaopedro.weatherhubandroid.rede.ItemPrevisao
 import kotlinx.coroutines.launch
-import coil.load
 
 class Detalhes : AppCompatActivity() {
-
-    private val itens = mutableListOf<ItemPrevisao>()
-    private lateinit var adapter: PrevisaoAdapter
-
     companion object {
         private const val USER_ID_PADRAO = 1L
+        private const val EXTRA_CIDADE = "cidade"
     }
+    private val itensPrevisao = mutableListOf<ItemPrevisao>()
+    private lateinit var adapter: PrevisaoAdapter
+    private var cidade: String = ""
+    private lateinit var txtStatus: TextView
+    private lateinit var txtClimaAtual: TextView
+    private lateinit var txtHistorico: TextView
+    private lateinit var imgIcone: ImageView
+    private lateinit var btnLimparHistorico: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detalhes)
+        try {
+            ProviderInstaller.installIfNeeded(this)
+        } catch (_: Exception) { }
 
-        val txtStatus = findViewById<TextView>(R.id.txtStatusDetalhes)
+        txtStatus = findViewById(R.id.txtStatusDetalhes)
+        txtClimaAtual = findViewById(R.id.txtClimaAtual)
+        txtHistorico = findViewById(R.id.txtHistorico)
+        imgIcone = findViewById(R.id.imgIconeDetalhes)
+        btnLimparHistorico = findViewById(R.id.btnLimparHistorico)
+
         val rv = findViewById<RecyclerView>(R.id.rvPrevisao)
         val btnVoltar = findViewById<Button>(R.id.btnVoltarDetalhes)
-        val txtClimaAtual = findViewById<TextView>(R.id.txtClimaAtual)
-        val imgIconeDetalhes = findViewById<ImageView>(R.id.imgIconeDetalhes)
-        val txtHistorico = findViewById<TextView>(R.id.txtHistorico)
-        val btnLimparHistorico = findViewById<Button>(R.id.btnLimparHistorico)
 
-        btnVoltar.setOnClickListener { finish() }
-
-        adapter = PrevisaoAdapter(itens)
+        adapter = PrevisaoAdapter(itensPrevisao)
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = adapter
 
-        val cidade = intent.getStringExtra("cidade")?.trim()
-        if (cidade.isNullOrEmpty()) {
+        btnVoltar.setOnClickListener { finish() }
+        btnLimparHistorico.setOnClickListener { limparHistorico() }
+
+        cidade = intent.getStringExtra(EXTRA_CIDADE)?.trim().orEmpty()
+        if (cidade.isBlank()) {
             txtStatus.text = "Abra Detalhes a partir de uma busca (falta a cidade)."
             return
         }
 
-        txtStatus.text = "Carregando previsão de: $cidade"
+        carregarTela()
+    }
+    private fun carregarTela() {
+        txtStatus.text = "Carregando: $cidade"
 
         lifecycleScope.launch {
-            try {
-                val txtHistorico = findViewById<TextView>(R.id.txtHistorico)
+            carregarHistorico()
+            carregarClimaAtualEIcone()
+            carregarPrevisao5Dias()
 
-                val apiHub = FabricaRetrofit.weatherHubApi()
-                val listaHist = apiHub.listarHistorico(USER_ID_PADRAO)
-
-                val filtrado = listaHist.filter { h ->
-                    h.cityName.equals(cidade, ignoreCase = true)
-                }
-
-                val linhas = if (filtrado.isEmpty()) {
-                    listOf("sem registros para essa cidade")
-                } else {
-                    filtrado.map { h -> "${h.searchedAt} | ${h.temperature}°C | ${h.condition}" }
-                }
-
-                txtHistorico.text = "Histórico:\n" + linhas.joinToString("\n")
-
-                val api = FabricaRetrofit.openWeatherApi()
-
-                val climaAtual = api.buscarClimaAtual(
-                    cidade = cidade,
-                    chaveApi = BuildConfig.OPENWEATHER_API_KEY
-                )
-
-                val cond = climaAtual.weather.firstOrNull()?.description ?: "-"
-                txtClimaAtual.text =
-                    "Clima atual: ${climaAtual.main.temp} °C\n" +
-                            "Condição: $cond\n" +
-                            "Umidade: ${climaAtual.main.humidity}%\n" +
-                            "Vento: ${climaAtual.wind.speed} m/s"
-
-                val icone = climaAtual.weather.firstOrNull()?.icon
-                imgIconeDetalhes.setImageResource(R.drawable.ic_weather_placeholder)
-
-                if (!icone.isNullOrBlank()) {
-                    val urlIcone = "https://openweathermap.org/img/wn/${icone}@2x.png"
-                    val respIcone = api.baixarIcone(urlIcone)
-
-                    if (respIcone.isSuccessful) {
-                        val bytes = respIcone.body()?.bytes()
-                        if (bytes != null && bytes.isNotEmpty()) {
-                            imgIconeDetalhes.load(bytes) {
-                                error(R.drawable.ic_weather_placeholder)
-                                fallback(R.drawable.ic_weather_placeholder)
-                            }
-                        }
-                    }
-                }
-
-                val resp = api.buscarPrevisao5Dias(
-                    cidade = cidade,
-                    chaveApi = BuildConfig.OPENWEATHER_API_KEY
-                )
-
-                itens.clear()
-                itens.addAll(resp.list)
-                adapter.notifyDataSetChanged()
-
-                txtStatus.text = "Previsão (5 dias) - $cidade"
-            } catch (e: Exception) {
-                txtStatus.text = "Erro ao buscar dados."
-            }
+            txtStatus.text = "Previsao (5 dias) - $cidade"
         }
-        btnLimparHistorico.setOnClickListener {
-            lifecycleScope.launch {
-                try {
-                    val apiHub = FabricaRetrofit.weatherHubApi()
-                    apiHub.limparHistorico(USER_ID_PADRAO)
+    }
+    private suspend fun carregarHistorico() {
+        try {
+            val apiHub = FabricaRetrofit.weatherHubApi()
+            val lista = apiHub.listarHistorico(USER_ID_PADRAO)
 
-                    txtHistorico.text = "Histórico: limpo"
-                } catch (e: Exception) {
-                    txtHistorico.text = "Erro ao limpar histórico."
+            val filtrado = lista.filter { h ->
+                h.cityName.equals(cidade, ignoreCase = true)
+            }
+
+            val linhas = if (filtrado.isEmpty()) {
+                listOf("sem registros para essa cidade")
+            } else {
+                filtrado.map { h -> "${h.searchedAt} | ${h.temperature}°C | ${h.condition}" }
+            }
+
+            txtHistorico.text = "Historico:\n" + linhas.joinToString("\n")
+        } catch (_: Exception) {
+            txtHistorico.text = "Historico:\n(erro ao carregar)"
+        }
+    }
+    private suspend fun carregarClimaAtualEIcone() {
+        try {
+            val api = FabricaRetrofit.openWeatherApi()
+            val clima = api.buscarClimaAtual(
+                cidade = cidade,
+                chaveApi = BuildConfig.OPENWEATHER_API_KEY
+            )
+
+            val desc = clima.weather.firstOrNull()?.description ?: "-"
+
+            txtClimaAtual.text =
+                "Clima atual: ${clima.main.temp} °C\n" +
+                        "Condicao: $desc\n" +
+                        "Umidade: ${clima.main.humidity}%\n" +
+                        "Vento: ${clima.wind.speed} m/s"
+
+            imgIcone.setImageResource(R.drawable.ic_weather_placeholder)
+            val iconCode = clima.weather.firstOrNull()?.icon
+            if (!iconCode.isNullOrBlank()) {
+                val url = "https://openweathermap.org/img/wn/${iconCode}@2x.png"
+                imgIcone.load(url) {
+                    error(R.drawable.ic_weather_placeholder)
+                    fallback(R.drawable.ic_weather_placeholder)
                 }
+            }
+        } catch (_: Exception) {
+            txtClimaAtual.text = "Erro ao buscar clima atual."
+            imgIcone.setImageResource(R.drawable.ic_weather_placeholder)
+        }
+    }
+    private suspend fun carregarPrevisao5Dias() {
+        try {
+            val api = FabricaRetrofit.openWeatherApi()
+            val resp = api.buscarPrevisao5Dias(
+                cidade = cidade,
+                chaveApi = BuildConfig.OPENWEATHER_API_KEY
+            )
+
+            itensPrevisao.clear()
+            itensPrevisao.addAll(resp.list)
+            adapter.notifyDataSetChanged()
+        } catch (_: Exception) {
+            txtStatus.text = "Erro ao buscar previsao."
+        }
+    }
+    private fun limparHistorico() {
+        lifecycleScope.launch {
+            try {
+                val apiHub = FabricaRetrofit.weatherHubApi()
+                apiHub.limparHistorico(USER_ID_PADRAO)
+
+                carregarHistorico()
+            } catch (_: Exception) {
+                txtHistorico.text = "Historico:\n(erro ao limpar)"
             }
         }
     }
-
     private class PrevisaoAdapter(private val dados: List<ItemPrevisao>) :
         RecyclerView.Adapter<PrevisaoViewHolder>() {
 
