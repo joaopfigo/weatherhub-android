@@ -8,9 +8,9 @@ App Android em Kotlin (Views / Activities) que:
 
 ---
 
-## Conteúdo exigido no enunciado (imagem)
+## Conteúdo exigido no enunciado 
 
-A imagem do enunciado pede que o projeto demonstre:
+O enunciado pede que o projeto demonstre:
 
 1. **Consumo de múltiplas APIs REST**
    Este app consome **duas APIs REST**:
@@ -21,8 +21,8 @@ A imagem do enunciado pede que o projeto demonstre:
 2. **Retrofit e OkHttp (configuração e uso)**
 
    * Retrofit é usado para definir interfaces (`OpenWeatherApi`, `WeatherHubApi`) e realizar chamadas HTTP.
-   * GsonConverterFactory converte JSON ↔ Kotlin data classes automaticamente.
-   * OkHttp está como dependência (base do Retrofit). Logging Interceptor está incluído nas dependências (pode ser ativado se necessário).
+   * GsonConverterFactory converte JSON para Kotlin data classes automaticamente.
+   * OkHttp está como dependência (base do Retrofit).
 
 3. **Tratamento de responses assíncronos**
 
