@@ -185,7 +185,7 @@ http://<HOST>:8080/
 
 ---
 
-## APIs consumidas (Endpoints) — Resumo
+## APIs consumidas (Endpoints) 
 
 ### A) OpenWeather (externa)
 
